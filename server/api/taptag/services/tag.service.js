@@ -6,16 +6,16 @@ const mongoose = require('mongoose');
 const TapTag = require('../models/tapTag.model');
 const TapTagUser = require('../models/tapTagUser.model');
 const config = require('../../../config/environment');
+const { generateQrImage } = require('../utils/qr.util');
 
 const MAX_BULK_COUNT = 500;
 
-const createIdentifiers = () => {
+const createIdentifiers = async () => {
   const tagId = uuidv4();
   const shortCode = crypto.randomBytes(6).toString('base64url').slice(0, 8).toLowerCase();
-  const baseUrl = config.publicBaseUrl.replace(/\/$/, '');
-  console.log(baseUrl);
+  const baseUrl = (config.publicBaseUrl || '').replace(/\/$/, '');
   const shortUrl = `${baseUrl}/r/${shortCode}`;
-  const qrUrl = `${baseUrl}/r/${shortCode}`;
+  const { qrUrl } = await generateQrImage({ shortCode, targetUrl: shortUrl });
 
   return {
     tagId,
@@ -37,17 +37,18 @@ const generateBulkTags = async ({ count, batchName, metadata = {}, generatedBy }
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    const docs = Array.from({ length: count }).map(() => {
-      const identifiers = createIdentifiers();
-      console.log(identifiers);
-      return {
-        ...identifiers,
-        status: 'generated',
-        batchName: batchName || `batch-${new Date().toISOString().slice(0, 10)}`,
-        metadata,
-        generatedBy: generatedBy || null,
-      };
-    });
+    const docs = await Promise.all(
+      Array.from({ length: count }).map(async () => {
+        const identifiers = await createIdentifiers();
+        return {
+          ...identifiers,
+          status: 'generated',
+          batchName: batchName || `batch-${new Date().toISOString().slice(0, 10)}`,
+          metadata,
+          generatedBy: generatedBy || null,
+        };
+      })
+    );
 
     const result = await TapTag.insertMany(docs, { session });
     await session.commitTransaction();

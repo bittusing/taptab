@@ -36,6 +36,14 @@ module.exports = {
     shopUrl: env.SUPPORT_SHOP_URL || '',
     email: env.SUPPORT_EMAIL || '',
   },
+  qr: {
+    storage: env.QR_STORAGE_DRIVER || '',
+    assetBaseUrl: env.QR_ASSET_BASE_URL || '',
+    margin: Number(env.QR_MARGIN),
+    scale: Number(env.QR_SCALE),
+    darkColor: env.QR_DARK_COLOR || '',
+    lightColor: env.QR_LIGHT_COLOR || '',
+  },
   notification: {
     smsProvider: env.SMS_PROVIDER || 'none',
     whatsappProvider: env.WHATSAPP_PROVIDER || 'none',
