@@ -1,0 +1,185 @@
+<section class="tag-app" data-shortcode="<%= tag.shortCode %>">
+  <header class="tag-header">
+    <div class="tag-brand">
+      <span><%= tag.brandName %></span>
+      <small>• Notify owner</small>
+    </div>
+    <button class="menu-button" type="button" data-open-menu aria-label="Open menu">
+      <span></span>
+    </button>
+  </header>
+
+  <article class="vehicle-card">
+    <p class="eyebrow">Contact vehicle owner</p>
+    <h1 class="vehicle-id">
+      <span><%= tag.vehicleDisplay.display %></span>
+    </h1>
+    <p class="vehicle-question">
+      Why would you like to contact the <%= tag.vehicleType %> owner?
+    </p>
+
+    <form class="reason-list" aria-label="Select contact reason">
+      <% reasons.forEach(function (reason, index) { %>
+        <label class="reason-option">
+          <input
+            type="radio"
+            name="reason"
+            value="<%= reason.value %>"
+            data-label="<%= reason.label %>"
+            <%= index === 0 ? 'checked' : '' %>
+          />
+          <span class="emoji" aria-hidden="true"><%= reason.icon %></span>
+          <span class="label"><%= reason.label %></span>
+          <span class="marker" aria-hidden="true"></span>
+        </label>
+      <% }) %>
+    </form>
+  </article>
+
+  <div class="cta-row">
+    <button class="cta-btn secondary" type="button" data-open-message>
+      <span aria-hidden="true">💬</span>
+      Message
+    </button>
+    <button class="cta-btn" type="button" data-open-call>
+      <span aria-hidden="true">📞</span>
+      Private Call
+    </button>
+  </div>
+
+  <button class="emergency-btn" type="button" data-emergency-number="<%= tag.emergencyNumber %>">
+    <span aria-hidden="true">🚨</span>
+    Emergency
+  </button>
+
+  <p class="notice">
+    Any kind of spam will get your number and IP blocked for up to 6 months.
+  </p>
+</section>
+
+<dialog id="messageDialog" class="modal">
+  <form id="messageForm" class="form-grid" method="post" action="/r/<%= tag.shortCode %>/message">
+    <h2 class="modal-headline">Send a private message</h2>
+    <p class="modal-subtext">We will deliver your note instantly without sharing your number.</p>
+
+    <input type="hidden" name="reason" data-reason-field />
+
+    <div class="form-field">
+      <label for="digits">Last 4 digits of the vehicle plate (if visible)</label>
+      <input
+        id="digits"
+        name="digits"
+        inputmode="numeric"
+        maxlength="4"
+        placeholder="e.g. 2366"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="callbackPhone">Phone number (optional)</label>
+      <input
+        id="callbackPhone"
+        name="callbackPhone"
+        inputmode="tel"
+        placeholder="Let the owner call you back"
+        autocomplete="tel"
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="note">Add more details (optional)</label>
+      <textarea
+        id="note"
+        name="note"
+        maxlength="400"
+        placeholder="Describe what you noticed about the vehicle."
+      ></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-dialog="messageDialog">Cancel</button>
+      <button type="submit" class="btn-primary">Send message</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="callDialog" class="modal">
+  <form id="callForm" class="form-grid" method="post" action="/r/<%= tag.shortCode %>/call-request">
+    <h2 class="modal-headline">Request a masked call</h2>
+    <p class="modal-subtext">
+      We will bridge a 90-second call. Explain the situation quickly — your number stays hidden.
+    </p>
+
+    <input type="hidden" name="reason" data-reason-field />
+
+    <div class="form-field">
+      <label for="callDigits">Last 4 digits of the vehicle plate (if visible)</label>
+      <input
+        id="callDigits"
+        name="digits"
+        inputmode="numeric"
+        maxlength="4"
+        placeholder="e.g. 2366"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="callBackNumber">Phone number so the owner can reach you</label>
+      <input
+        id="callBackNumber"
+        name="callbackPhone"
+        inputmode="tel"
+        placeholder="Required for the masked call"
+        autocomplete="tel"
+        required
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="callNote">Anything else the owner should know?</label>
+      <textarea
+        id="callNote"
+        name="note"
+        maxlength="280"
+        placeholder="Example: Vehicle alarm is ringing loudly."
+      ></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-dialog="callDialog">Cancel</button>
+      <button type="submit" class="btn-primary">Request call</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="menuDialog" class="menu-dialog">
+  <div class="menu-grid">
+    <div class="menu-section">
+      <h4>Utility</h4>
+      <ul class="menu-links">
+        <% if (tag.support.helpUrl) { %>
+          <li><a href="<%= tag.support.helpUrl %>" target="_blank" rel="noreferrer">Help / Demo</a></li>
+        <% } %>
+        <% if (tag.support.dashboardUrl) { %>
+          <li><a href="<%= tag.support.dashboardUrl %>" target="_blank" rel="noreferrer">Dashboard login</a></li>
+        <% } %>
+        <% if (tag.support.orderUrl) { %>
+          <li><a href="<%= tag.support.orderUrl %>" target="_blank" rel="noreferrer">Track order</a></li>
+        <% } %>
+        <% if (tag.support.shopUrl) { %>
+          <li><a href="<%= tag.support.shopUrl %>" target="_blank" rel="noreferrer">Get a TapTag</a></li>
+        <% } %>
+      </ul>
+    </div>
+    <div class="support-card">
+      <strong>Need help?</strong>
+      <% if (tag.support.whatsapp) { %>
+        <a href="<%= tag.support.whatsapp %>" target="_blank" rel="noreferrer">Chat on WhatsApp</a>
+      <% } %>
+      <a href="mailto:<%= tag.support.email %>"><%= tag.support.email %></a>
+    </div>
+  </div>
+</dialog>
+
