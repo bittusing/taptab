@@ -41,10 +41,22 @@
       <span aria-hidden="true">💬</span>
       Message
     </button>
-    <button class="cta-btn" type="button" data-open-call>
-      <span aria-hidden="true">📞</span>
-      Private Call
-    </button>
+    <% if (tag.ownerPhoneForCall) { %>
+      <a class="cta-btn" href="tel:<%= tag.ownerPhoneForCall %>" data-direct-call>
+        <span aria-hidden="true">📞</span>
+        Call Owner
+      </a>
+    <% } else if (tag.virtualNumber) { %>
+      <a class="cta-btn" href="tel:<%= tag.virtualNumber %>" data-virtual-call>
+        <span aria-hidden="true">📞</span>
+        Call (Masked)
+      </a>
+    <% } else { %>
+      <button class="cta-btn" type="button" data-open-call>
+        <span aria-hidden="true">📞</span>
+        Request Call
+      </button>
+    <% } %>
   </div>
 
   <button class="emergency-btn" type="button" data-emergency-number="<%= tag.emergencyNumber %>">

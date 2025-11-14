@@ -52,6 +52,7 @@ module.exports = {
       accountSid: env.TWILIO_ACCOUNT_SID || '',
       authToken: env.TWILIO_AUTH_TOKEN || '',
       messagingServiceSid: env.TWILIO_MESSAGING_SERVICE_SID || '',
+      phoneNumber: env.TWILIO_PHONE_NUMBER || '',
     },
     gupshup: {
       appName: env.GUPSHUP_APP_NAME || '',

@@ -2,6 +2,8 @@
 
 const TapTag = require('../api/taptag/models/tapTag.model');
 const messageService = require('../api/taptag/services/message.service');
+const virtualCallService = require('../api/taptag/services/virtualCall.service');
+const phoneEncryption = require('../api/taptag/utils/phoneEncryption.util');
 const config = require('../config/environment');
 
 const VISITOR_REASONS = [
@@ -57,6 +59,29 @@ const renderTagPage = async (req, res) => {
   const vehicleNumber = owner.vehicle?.number || '';
   const vehicleDisplay = formatVehicleNumber(vehicleNumber);
 
+  // Decrypt phone number for tel: link (but don't display it)
+  let ownerPhoneForCall = null;
+  try {
+    if (owner.encryptedPhone) {
+      const decryptedPhone = phoneEncryption.decryptPhone(owner.encryptedPhone);
+      ownerPhoneForCall = phoneEncryption.formatPhoneForTel(decryptedPhone);
+    } else if (owner.phone) {
+      // Fallback for old records without encryption
+      ownerPhoneForCall = phoneEncryption.formatPhoneForTel(owner.phone);
+    }
+  } catch (error) {
+    (global).logger?.warn?.({ error: error.message }, 'Failed to decrypt phone number');
+  }
+
+  // Get virtual number if available (backup option)
+  let virtualNumber = null;
+  try {
+    virtualNumber = virtualCallService.getVirtualNumber();
+  } catch (error) {
+    // Virtual number not configured, continue without it
+    (global).logger?.warn?.('Virtual number not available');
+  }
+
   res.render('pages/tag', {
     pageTitle: `Contact ${vehicleType} owner`,
     additionalScripts: ['/assets/js/tag-page.js'],
@@ -68,6 +93,8 @@ const renderTagPage = async (req, res) => {
       vehicleDisplay,
       ownerName: owner.fullName || 'Owner',
       emergencyNumber: config.emergencyNumber,
+      ownerPhoneForCall, // For tel: link (not displayed)
+      virtualNumber, // Backup option (Twilio)
       support: {
         whatsapp: config.support.whatsapp,
         helpUrl: config.support.helpUrl,

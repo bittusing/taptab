@@ -4,6 +4,8 @@ const express = require('express');
 const tagController = require('./controllers/tag.controller');
 const activationController = require('./controllers/activation.controller');
 const messageController = require('./controllers/message.controller');
+const virtualCallController = require('./controllers/virtualCall.controller');
+const callWebhookController = require('./controllers/callWebhook.controller');
 const adminApiKey = require('../../middleware/adminApiKey');
 const rateLimitMiddleware = require('../../middleware/rateLimit');
 
@@ -31,6 +33,28 @@ router.post(
   rateLimitMiddleware.rateLimitByIp?.(6, 60) || ((req, res, next) => next()),
   messageController.requestCallBack
 );
+
+// Virtual call routes
+router.post(
+  base + '/call/:shortCode/initiate',
+  rateLimitMiddleware.rateLimitByIp?.(5, 60) || ((req, res, next) => next()),
+  virtualCallController.initiateCall
+);
+router.get(
+  base + '/call/:shortCode/history',
+  rateLimitMiddleware.rateLimitByIp?.(10, 60) || ((req, res, next) => next()),
+  virtualCallController.getCallHistory
+);
+router.get(
+  base + '/call/virtual-number',
+  rateLimitMiddleware.rateLimitByIp?.(10, 60) || ((req, res, next) => next()),
+  virtualCallController.getVirtualNumber
+);
+
+// Twilio webhook routes (no rate limiting for webhooks)
+router.post(base + '/call/connect', callWebhookController.handleCallConnect);
+router.post(base + '/call/status', callWebhookController.handleCallStatus);
+router.post(base + '/call/dial-status', callWebhookController.handleDialStatus);
 
 // Admin-only routes
 router.post(base + '/qr/generate-bulk', adminApiKey, tagController.generateBulk);

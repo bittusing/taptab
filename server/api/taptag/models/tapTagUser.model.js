@@ -37,6 +37,11 @@ const TapTagUserSchema = new Schema(
       trim: true,
       index: true,
     },
+    encryptedPhone: {
+      type: String,
+      default: null,
+      index: false,
+    },
     email: {
       type: String,
       trim: true,

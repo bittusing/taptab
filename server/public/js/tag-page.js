@@ -81,6 +81,41 @@
     window.location.href = `tel:${number}`;
   });
 
+  // Handle direct call button (zero-cost method)
+  const directCallBtn = document.querySelector('[data-direct-call]');
+  if (directCallBtn) {
+    // No tracking needed - direct tel: link, zero backend cost
+    // Phone number is encrypted in DB, decrypted only for tel: link
+    // Number is never displayed to visitor
+  }
+
+  // Handle virtual call button (backup Twilio method - has cost)
+  const virtualCallBtn = document.querySelector('[data-virtual-call]');
+  if (virtualCallBtn) {
+    virtualCallBtn.addEventListener('click', (e) => {
+      const shortCode = page.dataset.shortcode;
+      if (!shortCode) return;
+
+      // Optional: Track call initiation
+      if (navigator.sendBeacon) {
+        try {
+          navigator.sendBeacon(
+            `/api/v1/call/${shortCode}/initiate`,
+            JSON.stringify({
+              visitorPhone: '', // Will be detected by Twilio
+              metadata: {
+                source: 'virtual-call',
+                timestamp: new Date().toISOString(),
+              },
+            })
+          );
+        } catch (err) {
+          // Silent fail, call will still proceed
+        }
+      }
+    });
+  }
+
   const appendReasonLabel = (form) => {
     if (!form) return;
     form.addEventListener('submit', () => {

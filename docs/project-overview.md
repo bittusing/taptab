@@ -49,7 +49,8 @@ Key variables defined in `server/config/environment.js`:
 - `SUPPORT_HELP_URL`, `SUPPORT_WHATSAPP_URL`, `SUPPORT_DASHBOARD_URL`, `SUPPORT_ORDER_URL`, `SUPPORT_SHOP_URL`, `SUPPORT_EMAIL`
 - `QR_STORAGE_DRIVER` (`s3` or leave empty for local)
 - `QR_ASSET_BASE_URL`, `QR_MARGIN`, `QR_SCALE`, `QR_DARK_COLOR`, `QR_LIGHT_COLOR`
-- Notification providers: `SMS_PROVIDER`, `WHATSAPP_PROVIDER`, Twilio and Gupshup credentials.
+- Notification providers: `SMS_PROVIDER`, `WHATSAPP_PROVIDER`, Twilio credentials (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID`, `TWILIO_PHONE_NUMBER` for virtual calls - backup only), and Gupshup credentials.
+- Phone encryption: `PHONE_ENCRYPTION_SECRET` (required for direct calls - zero cost solution)
 
 For S3 uploads, provide the AWS credentials and set `QR_STORAGE_DRIVER=s3`. Without it, the service writes QR PNGs to `uploads/qr`.
 
@@ -112,6 +113,13 @@ Base path: `/api/v1`.
   - `POST /message` – submit message by shortCode in body.
   - `POST /message/:shortCode` – same as above but shortCode in URL.
   - `POST /message/:shortCode/call-request` – request callback for a tag.
+- **Virtual Calls (Masked Phone Numbers)**
+  - `GET /call/virtual-number` – get the virtual number visitors should call.
+  - `POST /call/:shortCode/initiate` – programmatically initiate a masked call.
+  - `GET /call/:shortCode/history` – get call history for a tag (paginated).
+  - `POST /call/connect` – Twilio webhook for incoming calls (internal).
+  - `POST /call/status` – Twilio webhook for call status updates (internal).
+  - `POST /call/dial-status` – Twilio webhook for dial status (internal).
 - **Admin (requires `X-Admin-Api-Key`)**
   - `POST /qr/generate-bulk` – create `count` tags, generate QR PNGs, return metadata.
   - `GET /admin/tags` – list tags with filters (status, batchName, search, pagination).
@@ -129,6 +137,30 @@ QR creation stores files via `generateQrImage` utility. Each generated tag conta
 ## Message Delivery
 
 `message.service` handles message submission and callback requests, enforcing rate limits via `rateLimit` middleware (default 10 requests/min on message, 6/min for callbacks). Messages include metadata (`reason`, `note`, etc.) for owner notifications.
+
+## Direct Calls (Zero Cost - PRIMARY)
+
+**This is the recommended method** - zero backend cost, complete privacy.
+
+- Owner's phone number is **encrypted** in database (AES-256-GCM)
+- Frontend shows "Call Owner" button with `tel:` link
+- Phone number **never displayed** to visitors
+- Direct call from visitor's device - no backend API/VoIP charges
+- See `docs/direct-call-zero-cost.md` for complete details
+
+**Setup**: Add `PHONE_ENCRYPTION_SECRET` to `.env` (strong random key, 32+ chars)
+
+## Virtual Calls (Twilio - BACKUP)
+
+**Backup option** - has per-minute costs, use only if direct calls don't work.
+
+The system supports Uber-style masked phone calls using Twilio. Visitors call a virtual number that routes to the owner's real number without exposing it. See `docs/virtual-calls.md` for complete setup and usage.
+
+- `virtualCall.service` handles call initiation and routing
+- `VirtualCall` model stores call records with status, duration, and metadata
+- Twilio webhooks update call status in real-time
+- Rate limiting: 5 calls per 60 seconds per IP
+- **Cost**: Per-minute charges from Twilio
 
 ## Activation Flow
 

@@ -6,6 +6,7 @@ const TapTagUser = require('../models/tapTagUser.model');
 const TapTagActivationToken = require('../models/tapTagActivationToken.model');
 const notificationService = require('./notification.service');
 const securityUtil = require('../utils/security.util');
+const phoneEncryption = require('../utils/phoneEncryption.util');
 const config = require('../../../config/environment');
 
 const OTP_TTL_MINUTES = config.notification.otpTtlMinutes || 10;
@@ -104,6 +105,9 @@ const confirmActivation = async ({
       type: vehicleType || 'car',
     };
 
+    // Encrypt phone number for secure storage
+    const encryptedPhone = phoneEncryption.encryptPhone(phone);
+
     const user = await TapTagUser.findOneAndUpdate(
       {
         $or: [
@@ -114,6 +118,7 @@ const confirmActivation = async ({
       {
         fullName,
         phone,
+        encryptedPhone,
         email,
         city,
         vehicle: vehiclePayload,
