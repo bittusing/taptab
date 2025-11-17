@@ -218,8 +218,7 @@ exports.loginEmailPassword = async (reqBody) => {
     const user = await UserModel.findOne({
       email: email, isActive: true,
       role: {
-        $in: ['Super Admin', 'Support Admin', 'Admin', 'Tutor', 'Employee',
-          'HR', 'Finance', 'Project Manager', 'Sales']
+        $in: ['Super Admin', 'Support Admin', 'Admin', 'Affiliate']
       }
     });
     if (!user) throw new Error('User not found');
@@ -357,6 +356,48 @@ exports.getAffiliateListWithStats = async (query, reqUser) => {
           totalCommissionEarned: { $sum: '$commisionAmountOfSalesPerson' },
           totalCost: { $sum: '$castAmountOfProductAndServices' },
           totalOwnerCommission: { $sum: '$commisionAmountOfOwner' },
+          successfulSales: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$varificationStatus', 'completed'] },
+                    { $eq: ['$paymentStatus', 'completed'] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          successfulCommission: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$varificationStatus', 'completed'] },
+                    { $eq: ['$paymentStatus', 'completed'] },
+                  ],
+                },
+                '$commisionAmountOfSalesPerson',
+                0,
+              ],
+            },
+          },
+          pendingCommission: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$varificationStatus', 'completed'] },
+                    { $eq: ['$paymentStatus', 'completed'] },
+                  ],
+                },
+                0,
+                '$commisionAmountOfSalesPerson',
+              ],
+            },
+          },
         },
       },
     ]);
@@ -370,6 +411,9 @@ exports.getAffiliateListWithStats = async (query, reqUser) => {
         totalCommissionEarned: stat.totalCommissionEarned || 0,
         totalCost: stat.totalCost || 0,
         totalOwnerCommission: stat.totalOwnerCommission || 0,
+        successfulSales: stat.successfulSales || 0,
+        successfulCommission: stat.successfulCommission || 0,
+        pendingCommission: stat.pendingCommission || 0,
       };
     });
 
@@ -381,6 +425,9 @@ exports.getAffiliateListWithStats = async (query, reqUser) => {
         totalCommissionEarned: 0,
         totalCost: 0,
         totalOwnerCommission: 0,
+        successfulSales: 0,
+        successfulCommission: 0,
+        pendingCommission: 0,
       };
 
       return {
@@ -402,6 +449,9 @@ exports.getAffiliateListWithStats = async (query, reqUser) => {
         totalCommissionEarned: stats.totalCommissionEarned,
         totalCost: stats.totalCost,
         totalOwnerCommission: stats.totalOwnerCommission,
+        successfulSales: stats.successfulSales,
+        successfulCommission: stats.successfulCommission,
+        pendingCommission: stats.pendingCommission,
         createdAt: affiliate.createdAt,
         updatedAt: affiliate.updatedAt,
       };
