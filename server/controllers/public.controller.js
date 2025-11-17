@@ -1,9 +1,8 @@
 'use strict';
 
 const TapTag = require('../api/taptag/models/tapTag.model');
-const messageService = require('../api/taptag/services/message.service');
-const virtualCallService = require('../api/taptag/services/virtualCall.service');
-const phoneEncryption = require('../api/taptag/utils/phoneEncryption.util');
+const taptagService = require('../api/taptag/taptag.service');
+const { decryptPhone, formatPhoneForTel } = require('../utility/util');
 const config = require('../config/environment');
 
 const VISITOR_REASONS = [
@@ -34,7 +33,7 @@ const formatVehicleNumber = (value = '') => {
 
 const renderTagPage = async (req, res) => {
   const tag = await TapTag.findOne({ shortCode: req.params.shortCode })
-    .populate('assignedTo')
+    .populate('ownerAssignedTo')
     .lean();
 
   if (!tag || tag.status === 'archived') {
@@ -44,7 +43,7 @@ const renderTagPage = async (req, res) => {
     });
   }
 
-  const owner = tag.assignedTo;
+  const owner = tag.ownerAssignedTo;
 
   if (tag.status !== 'activated' || !owner) {
     return res.status(409).render('pages/not-found', {
@@ -63,11 +62,11 @@ const renderTagPage = async (req, res) => {
   let ownerPhoneForCall = null;
   try {
     if (owner.encryptedPhone) {
-      const decryptedPhone = phoneEncryption.decryptPhone(owner.encryptedPhone);
-      ownerPhoneForCall = phoneEncryption.formatPhoneForTel(decryptedPhone);
+      const decryptedPhone = decryptPhone(owner.encryptedPhone);
+      ownerPhoneForCall = formatPhoneForTel(decryptedPhone);
     } else if (owner.phone) {
       // Fallback for old records without encryption
-      ownerPhoneForCall = phoneEncryption.formatPhoneForTel(owner.phone);
+      ownerPhoneForCall = formatPhoneForTel(owner.phone);
     }
   } catch (error) {
     (global).logger?.warn?.({ error: error.message }, 'Failed to decrypt phone number');
@@ -76,7 +75,8 @@ const renderTagPage = async (req, res) => {
   // Get virtual number if available (backup option)
   let virtualNumber = null;
   try {
-    virtualNumber = virtualCallService.getVirtualNumber();
+    const result = await taptagService.getVirtualNumber({}, {});
+    virtualNumber = result.virtualNumber;
   } catch (error) {
     // Virtual number not configured, continue without it
     (global).logger?.warn?.('Virtual number not available');
@@ -125,7 +125,7 @@ const handleTagMessage = async (req, res, next) => {
   const compiledMessage = parts.join(' | ');
 
   try {
-    await messageService.submitMessage({
+    await taptagService.submitMessage({
       shortCode: req.params.shortCode,
       message: compiledMessage,
       ip: req.ip,
@@ -137,7 +137,7 @@ const handleTagMessage = async (req, res, next) => {
         digits,
         callbackPhone,
       },
-    });
+    }, {});
 
     if (req.accepts('json')) {
       return res.status(201).json({ message: 'Message delivered to the owner' });
@@ -163,7 +163,7 @@ const handleCallRequest = async (req, res, next) => {
   const reasonLabel = submittedLabel || getReasonLabel(reason);
 
   try {
-    await messageService.requestCallBack({
+    await taptagService.requestCallBack({
       shortCode: req.params.shortCode,
       ip: req.ip,
       userAgent: req.headers['user-agent'],
@@ -174,7 +174,7 @@ const handleCallRequest = async (req, res, next) => {
         digits,
         callbackPhone,
       },
-    });
+    }, {});
 
     if (req.accepts('json')) {
       return res.status(202).json({ message: 'Call-back request submitted' });

@@ -4,7 +4,9 @@ const express = require('express');
 const { joiValidate } = require('../../helpers/apiValidation.helper.js');
 const controller = require('./user.controller.js');
 const {validateSendOtp, validateVerifyOtp, validateUpdateProfile ,
-     validateCreateAdmin, validateLoginEmailPassword, validateGetRoleWiseUserList  } = require('./user.validation.js');
+     validateCreateAdmin, validateLoginEmailPassword,
+      validateGetRoleWiseUserList , validateCreateAffiliateUser, validateUpdateAffiliateUser,
+      validateGetAffiliateListWithStats } = require('./user.validation.js');
 const authService = require('../auth/auth.service.js');
 const uploadImage = require('../../config/multer.image.config.js');
 const router = express.Router();
@@ -55,6 +57,34 @@ router.get(base + '/user/get-role-wise-user-list',
         'Admin','Tutor','Employee','HR','Finance','Project Manager','Sales'] }),
     // joiValidate(validateGetRoleWiseUserList),
     controller.getRoleWiseUserList); 
+
+//////// list of admin , support admin, super admin, affiliate  
+router.get(base + '/user/list-of-admin-support-admin-super-admin-affiliate-list',
+    authService.isAuthenticated({ role: ['Super Admin','Support Admin','Admin'] }),
+    controller.listOfAdminSupportAdminSuperAdminAffiliate);
+
+//////// Affiliate list with sales stats
+router.get(base + '/user/affiliate-list-with-stats',
+    authService.isAuthenticated({ role: ['Super Admin','Support Admin','Admin'] }),
+    // joiValidate(validateGetAffiliateListWithStats),
+    controller.getAffiliateListWithStats);
+
+////// create Affiliate user by admin or super admin or support admin
+router.post(base + '/user/create-affiliate-user',
+    authService.isAuthenticated({ role: ['Super Admin','Support Admin', 'Admin'] }),
+    joiValidate(validateCreateAffiliateUser),
+    controller.createAffiliateUser);
+
+////// update Affiliate user by admin or super admin or support admin
+router.put(base + '/user/affiliate/:id',
+    authService.isAuthenticated({ role: ['Super Admin','Support Admin', 'Admin'] }),
+    joiValidate(validateUpdateAffiliateUser),
+    controller.updateAffiliateUser);
+///////// tag owner assign to affiliate
+    router.get(base + '/user/tag-assign-to-affiliate/:id',
+        authService.isAuthenticated({ role: ['Super Admin','Support Admin', 'Admin' , 'Affiliate'] }),
+        // joiValidate(validateUpdateAffiliateUser),
+        controller.tagAssignToAffiliate);    
 
 /// get particular user details
 router.get(base + '/user/:id',

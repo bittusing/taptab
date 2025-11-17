@@ -61,6 +61,40 @@ exports.validateCreateAdmin = {
     })
 };
 
+
+exports.validateCreateAffiliateUser = {
+    body: Joi.object({
+        name: Joi.string().required(),
+        email: Joi.string().email().required(),
+        phone: Joi.string().pattern(/^[6-9]\d{9}$/).length(10).required(),
+        password: Joi.string().min(6).required(),
+        role: Joi.string().valid('Affiliate').required(),
+        address: Joi.string().optional().allow(''),
+        city: Joi.string().optional().allow(''),
+        state: Joi.string().optional().allow(''),
+        pincode: Joi.string().pattern(/^\d{6}$/).optional().allow(''),
+        companyName: Joi.string().optional().allow(''),
+        commissionPercentage: Joi.number().min(0).max(100).required().default(0),
+        isActive: Joi.boolean().optional().default(true),
+    })
+};
+
+exports.validateUpdateAffiliateUser = {
+    body: Joi.object({
+        name: Joi.string().optional(),
+        email: Joi.string().email().optional(),
+        phone: Joi.string().pattern(/^[6-9]\d{9}$/).length(10).optional(),
+        password: Joi.string().min(6).optional().allow(''),
+        address: Joi.string().optional().allow(''),
+        city: Joi.string().optional().allow(''),
+        state: Joi.string().optional().allow(''),
+        pincode: Joi.string().pattern(/^\d{6}$/).optional().allow(''),
+        companyName: Joi.string().optional().allow(''),
+        commissionPercentage: Joi.number().min(0).max(100).optional(),
+        isActive: Joi.boolean().optional(),
+    })
+};
+
 exports.validateLoginEmailPassword = {
     body: Joi.object({
         email: Joi.string().email().required(),
@@ -72,5 +106,14 @@ exports.validateGetRoleWiseUserList = {
     params: Joi.object({
         role: Joi.string().valid('Super Admin', 'Support Admin', 'Admin', 'Tutor', 'Employee',
             'HR', 'Finance', 'Project Manager', 'Sales').required(),
+    })
+};
+
+exports.validateGetAffiliateListWithStats = {
+    query: Joi.object({
+        page: Joi.number().integer().min(1).optional(),
+        limit: Joi.number().integer().min(1).max(100).optional(),
+        status: Joi.string().valid('active', 'inactive', 'all').optional(),
+        search: Joi.string().optional().allow(''),
     })
 };

@@ -3,17 +3,7 @@ const timestamps = require('mongoose-timestamp');
 const mongooseDelete = require('mongoose-delete');
 
 const { Schema } = mongoose;
-const TutorSpecificFields = new Schema({
-  verified: { type: Boolean, default: false },
-  rating: { type: Number, default: 0 },
-  totalCourses: { type: Number, default: 0 },
-  totalStudents: { type: Number, default: 0 },
-  totalEarnings: { type: Number, default: 0 },
-  commissionRate: { type: Number, default: 20 },
-  joinDate: { type: Date, default: Date.now },
-  specialization: { type: [String], default: [] },
-  certifications: { type: [String], default: [] }
-});
+
 
 const UserSchema = new Schema({
   name: {
@@ -37,7 +27,7 @@ const UserSchema = new Schema({
   role: {
     type: String,
     required: true,
-    enum: ['Super Admin', 'User', 'Employee', 'Tutor','HR','Finance','Project Manager', 'Sales','Support Admin'],
+    enum: ['Super Admin', 'User', 'Affiliate','Support Admin'],
     default: 'User'
   },
   profilePic: {
@@ -114,37 +104,34 @@ const UserSchema = new Schema({
   bio: {
     type: String
   },
-  skills: {
-    type: [String],
-    default: []
-  },
-  TutorSpecificFields: [TutorSpecificFields],
-  github: {
-    type: String
-  },
-  linkedin: {
-    type: String
-  },
-  portfolio: {
-    type: String
-  },
-  college: {
-    type: String
-  },
-  course: {
-    type: String
-  },
-  semester: {
-    type: String
-  },
-  technologies: {
-    type: [String],
-    default: []
-  },
+ 
   isPrime: {
     type: Boolean,
     default: false
-  }
+  },
+
+  //////// affiliate user specific fields
+  address: {
+    type: String
+  },
+  city: {
+    type: String
+  },
+  state: {
+    type: String
+  },
+  pincode: {
+    type: String
+  },
+  companyName: {
+    type: String
+  },
+  commissionPercentage: {
+    type: Number,
+    default: 0
+  },
+
+  //////// affiliate user specific fields
 });
 
 // Add plugins

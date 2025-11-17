@@ -3,8 +3,8 @@
 const fs = require('fs/promises');
 const path = require('path');
 const QRCode = require('qrcode');
-const config = require('../../../config/environment');
-const { uploadFileToS3 } = require('../../../utility/s3Upload');
+const config = require('../config/environment');
+const { uploadFileToS3 } = require('./s3Upload');
 
 const DEFAULT_MARGIN = 1;
 const DEFAULT_SCALE = 8;
@@ -91,5 +91,4 @@ const generateQrImage = async ({ shortCode, targetUrl }) => {
 module.exports = {
   generateQrImage,
 };
-
 

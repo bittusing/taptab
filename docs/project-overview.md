@@ -23,7 +23,7 @@ TapTab is an Express + MongoDB backend that powers TapTag vehicle-contact workfl
 - `server/config/` handles environment, Express middleware, data sources, logging, and uploads.
 - `server/public/` static assets served under `/assets`.
 - `server/views/` EJS templates for public routes.
-- `server/api/taptag/utils/qr.util.js` generates QR codes for each tag.
+- `server/utility/qr.util.js` generates QR codes for each tag.
 - `uploads/` default local storage for uploaded media (including QR PNGs).
 
 ## Installation & Setup

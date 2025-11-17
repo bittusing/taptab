@@ -1,4 +1,6 @@
 const UserModel = require('./user.model');
+const TapTagSale = require('../taptagSale/taptagSale.model');
+const TapTag = require('../taptag/models/tapTag.model');
 const { getHashedOtp, generateOTP, generateSalt } = require('../../utility/util');
 const { uploadFileToS3 } = require('../../utility/s3Upload');
 const authService = require('../auth/auth.service');
@@ -275,3 +277,359 @@ exports.updateUserDetails = async (id, reqBody, reqUser) => {
     return Promise.reject(error);
   }
 }
+
+exports.listOfAdminSupportAdminSuperAdminAffiliate = async (reqUser) => {
+  try {
+    const users = await UserModel.find({ role: { $in: ['Affiliate', 'Support Admin','Admin','Super Admin'] }, isActive: true });
+    return {
+      users: users.map(user => ({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
+        companyName: user.companyName,
+        commissionPercentage: user.commissionPercentage,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      })),
+    };
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
+
+exports.getAffiliateListWithStats = async (query, reqUser) => {
+  try {
+    const { page = 1, limit = 10, status, search } = query;
+
+    // Build query for affiliates
+    const affiliateQuery = { role: 'Affiliate' };
+    
+    if (status) {
+      if (status === 'active') {
+        affiliateQuery.isActive = true;
+      } else if (status === 'inactive') {
+        affiliateQuery.isActive = false;
+      }
+    }
+
+    if (search) {
+      affiliateQuery.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Get affiliates with pagination
+    const [affiliates, total] = await Promise.all([
+      UserModel.find(affiliateQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit, 10))
+        .lean(),
+      UserModel.countDocuments(affiliateQuery),
+    ]);
+
+    // Get sales stats for each affiliate using aggregation
+    const affiliateIds = affiliates.map(aff => aff._id);
+
+    const salesStats = await TapTagSale.aggregate([
+      {
+        $match: {
+          SalesPerson: { $in: affiliateIds },
+        },
+      },
+      {
+        $group: {
+          _id: '$SalesPerson',
+          cardsActivated: { $sum: 1 },
+          totalSalesAmount: { $sum: '$totalSaleAmount' },
+          totalCommissionEarned: { $sum: '$commisionAmountOfSalesPerson' },
+          totalCost: { $sum: '$castAmountOfProductAndServices' },
+          totalOwnerCommission: { $sum: '$commisionAmountOfOwner' },
+        },
+      },
+    ]);
+
+    // Create a map of affiliateId -> stats
+    const statsMap = {};
+    salesStats.forEach(stat => {
+      statsMap[stat._id.toString()] = {
+        cardsActivated: stat.cardsActivated || 0,
+        totalSalesAmount: stat.totalSalesAmount || 0,
+        totalCommissionEarned: stat.totalCommissionEarned || 0,
+        totalCost: stat.totalCost || 0,
+        totalOwnerCommission: stat.totalOwnerCommission || 0,
+      };
+    });
+
+    // Combine affiliate data with stats
+    const affiliatesWithStats = affiliates.map(affiliate => {
+      const stats = statsMap[affiliate._id.toString()] || {
+        cardsActivated: 0,
+        totalSalesAmount: 0,
+        totalCommissionEarned: 0,
+        totalCost: 0,
+        totalOwnerCommission: 0,
+      };
+
+      return {
+        _id: affiliate._id,
+        name: affiliate.name,
+        email: affiliate.email,
+        phone: affiliate.phone,
+        status: affiliate.isActive ? 'ACTIVE' : 'INACTIVE',
+        address: affiliate.address,
+        city: affiliate.city,
+        state: affiliate.state,
+        pincode: affiliate.pincode,
+        companyName: affiliate.companyName,
+        commissionPercentage: affiliate.commissionPercentage || 0,
+        isActive: affiliate.isActive,
+        // Sales Stats
+        cardsActivated: stats.cardsActivated,
+        totalSalesAmount: stats.totalSalesAmount,
+        totalCommissionEarned: stats.totalCommissionEarned,
+        totalCost: stats.totalCost,
+        totalOwnerCommission: stats.totalOwnerCommission,
+        createdAt: affiliate.createdAt,
+        updatedAt: affiliate.updatedAt,
+      };
+    });
+
+    return {
+      items: affiliatesWithStats,
+      total,
+      page: parseInt(page, 10),
+      pages: Math.ceil(total / limit),
+    };
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
+
+
+exports.createAffiliateUser = async (reqBody, reqUser) => {
+  try {
+    const { 
+      name, 
+      email, 
+      phone, 
+      password, 
+      role, 
+      address,
+      city,
+      state,
+      pincode,
+      companyName,
+      commissionPercentage = 0,
+      isActive = true 
+    } = reqBody;
+
+    // Check if phone or email already exists
+    const existingUser = await UserModel.findOne({ $or: [{ phone }, { email }] });
+    if (existingUser) {
+      throw new Error('Phone or email already exists');
+    }
+
+    // Validate role
+    if (role !== 'Affiliate') {
+      throw new Error('Role must be Affiliate');
+    }
+
+    // Validate commission percentage
+    if (commissionPercentage < 0 || commissionPercentage > 100) {
+      throw new Error('Commission percentage must be between 0 and 100');
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create affiliate user
+    const user = await UserModel.create({ 
+      name, 
+      email, 
+      phone, 
+      hashedPassword, 
+      role: 'Affiliate', 
+      address: address || '',
+      city: city || '',
+      state: state || '',
+      pincode: pincode || '',
+      companyName: companyName || '',
+      commissionPercentage: commissionPercentage || 0,
+      isActive,
+      createdBy: reqUser?._id || null,
+    });
+
+    // Return user without password
+    const userObj = user.toObject();
+    delete userObj.hashedPassword;
+    return userObj;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
+
+exports.updateAffiliateUser = async (id, reqBody, reqUser) => {
+  try {
+    // Check if user exists and is an Affiliate
+    const user = await UserModel.findById(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    if (user.role !== 'Affiliate') {
+      throw new Error('User is not an Affiliate');
+    }
+
+    const { 
+      name, 
+      email, 
+      phone, 
+      password, 
+      address,
+      city,
+      state,
+      pincode,
+      companyName,
+      commissionPercentage,
+      isActive 
+    } = reqBody;
+    const updateData = {};
+
+    // Check if email is being changed
+    if (email !== undefined && email !== '' && email !== user.email) {
+      const existingEmailUser = await UserModel.findOne({
+        email: email,
+        _id: { $ne: user._id }
+      });
+      if (existingEmailUser) {
+        throw new Error('Email already exists for another user');
+      }
+      updateData.email = email;
+      updateData.isEmailVerified = false;
+    }
+
+    // Check if phone is being changed
+    if (phone !== undefined && phone !== '' && phone !== user.phone) {
+      const existingPhoneUser = await UserModel.findOne({
+        phone: phone,
+        _id: { $ne: user._id }
+      });
+      if (existingPhoneUser) {
+        throw new Error('Phone number already exists for another user');
+      }
+      updateData.phone = phone;
+      updateData.isMobileVerified = false;
+    }
+
+    // Update basic fields
+    if (name !== undefined) updateData.name = name;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    // Update affiliate specific fields
+    if (address !== undefined) updateData.address = address || '';
+    if (city !== undefined) updateData.city = city || '';
+    if (state !== undefined) updateData.state = state || '';
+    if (pincode !== undefined) updateData.pincode = pincode || '';
+    if (companyName !== undefined) updateData.companyName = companyName || '';
+    
+    // Validate and update commission percentage
+    if (commissionPercentage !== undefined) {
+      if (commissionPercentage < 0 || commissionPercentage > 100) {
+        throw new Error('Commission percentage must be between 0 and 100');
+      }
+      updateData.commissionPercentage = commissionPercentage;
+    }
+
+    // Update password if provided
+    if (password !== undefined && password !== '') {
+      const salt = await bcrypt.genSalt(10);
+      updateData.hashedPassword = await bcrypt.hash(password, salt);
+    }
+
+    // Add updatedBy
+    updateData.updatedBy = reqUser?._id || null;
+
+    // Update user
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      throw new Error('Failed to update affiliate user');
+    }
+
+    // Return user without password
+    const userObj = updatedUser.toObject();
+    delete userObj.hashedPassword;
+    return userObj;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
+
+
+exports.tagAssignToAffiliate = async (id, query = {}, reqUser) => {
+  try {
+    const user = await UserModel.findById(id);
+    if (!user) throw new Error('User not found');
+
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      search,
+    } = query;
+
+    const parsedPage = parseInt(page, 10) || 1;
+    const parsedLimit = parseInt(limit, 10) || 10;
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const filter = { assignedTo: user._id };
+
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      filter.$or = [
+        { tagId: regex },
+        { shortCode: regex },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      TapTag.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parsedLimit)
+        .populate('ownerAssignedTo', 'fullName phone city vehicle'),
+      TapTag.countDocuments(filter),
+    ]);
+
+    return {
+      items,
+      total,
+      page: parsedPage,
+      pages: Math.ceil(total / parsedLimit) || 0,
+      limit: parsedLimit,
+    };
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};

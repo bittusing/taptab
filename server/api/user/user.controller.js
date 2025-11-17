@@ -69,9 +69,44 @@ exports.updateUserDetails = (req, res, next) => {
         .catch((error) => responseHandler.error(res, error, error.message || 'Failed', 400));
 }
 
+exports.listOfAdminSupportAdminSuperAdminAffiliate = (req, res, next) => {
+    return service
+        .listOfAdminSupportAdminSuperAdminAffiliate(req.user)
+        .then((result) => responseHandler.success(res, result, 'List of admin, support admin, super admin, affiliate fetched successfully!', 200))
+        .catch((error) => responseHandler.error(res, error, error.message || 'Failed', 400));
+};
+
+exports.getAffiliateListWithStats = (req, res, next) => {
+    return service
+        .getAffiliateListWithStats(req.query, req.user)
+        .then((result) => responseHandler.success(res, result, 'Affiliate list with stats fetched successfully!', 200))
+        .catch((error) => responseHandler.error(res, error, error.message || 'Failed', 400));
+};
+
+exports.createAffiliateUser = (req, res, next) => {
+    return service
+        .createAffiliateUser(req.body, req.user)
+        .then((result) => responseHandler.success(res, result, 'Affiliate user created successfully!', 200))
+        .catch((error) => responseHandler.error(res, error, error.message || 'Failed', 400));
+};
+
+exports.updateAffiliateUser = (req, res, next) => {
+    return service
+        .updateAffiliateUser(req.params.id, req.body, req.user)
+        .then((result) => responseHandler.success(res, result, 'Affiliate user updated successfully!', 200))
+        .catch((error) => responseHandler.error(res, error, error.message || 'Failed', 400));
+};
+
+exports.tagAssignToAffiliate = (req, res, next) => {
+    return service
+        .tagAssignToAffiliate(req.params.id, req.query, req.user)
+        .then((result) => responseHandler.success(res, result, 'Tag assigned to affiliate successfully!', 200))
+        .catch((error) => responseHandler.error(res, error, error.message || 'Failed', 400));
+};
+
 exports.deleteUser = (req, res, next) => {
     return service
         .deleteUser(req.params.id, req.user)
         .then((result) => responseHandler.success(res, result, 'User deleted successfully!', 200))
         .catch((error) => responseHandler.error(res, error, error.message || 'Failed', 400));
-}
+};

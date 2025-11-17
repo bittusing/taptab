@@ -6,6 +6,11 @@ const { Schema } = mongoose;
 
 const ActivationSchema = new Schema(
   {
+    activatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     activatedAt: { type: Date },
     activatedIp: { type: String },
     verifiedAt: { type: Date },
@@ -46,23 +51,19 @@ const TapTagSchema = new Schema(
       type: String,
       default: null,
     },
+    // assignedTo: {
+    //   type: Schema.Types.ObjectId,
+    //   ref: 'TapTagUser',
+    //   default: null,
+    // },
     assignedTo: {
       type: Schema.Types.ObjectId,
-      ref: 'TapTagUser',
+      ref: 'User',   // affiliate user id ko assign karne ke liye
       default: null,
     },
-    activation: {
-      type: ActivationSchema,
-      default: () => ({}),
-    },
-    metadata: {
-      type: Map,
-      of: String,
-      default: () => ({}),
-    },
-    generatedBy: {
+    ownerAssignedTo: {
       type: Schema.Types.ObjectId,
-      ref: 'TapTagAdmin',
+      ref: 'TapTagUser',   // owner user id ko assign karne ke liye
       default: null,
     },
   },
