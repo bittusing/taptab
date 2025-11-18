@@ -6,7 +6,8 @@ const TapTagUser = require('./models/tapTagUser.model');
 const TapTagActivationToken = require('./models/tapTagActivationToken.model');
 const TapTagMessage = require('./models/tapTagMessage.model');
 const VirtualCall = require('./models/virtualCall.model');
-const { generateQrImage } = require('../../utility/qr.util');
+// const { generateQrImage } = require('../../utility/qr.util');
+const { generateQrImage } = require('../../utility/qrsticker.utils');
 const { encryptPhone } = require('../../utility/util');
 const securityUtil = require('../../utility/security.util');
 const config = require('../../config/environment');
@@ -40,13 +41,14 @@ exports.generateBulk = async (body, user) => {
                 const shortCode = crypto.randomBytes(6).toString('base64url').slice(0, 8).toLowerCase();
                 const baseUrl = (config.publicBaseUrl || '').replace(/\/$/, '');
                 const shortUrl = `${baseUrl}/r/${shortCode}`;
-                const { qrUrl } = await generateQrImage({ shortCode, targetUrl: shortUrl });
+                const { qrUrl, stickerUrl } = await generateQrImage({ shortCode, targetUrl: shortUrl });
 
                 return {
                     tagId,
                     shortCode,
                     shortUrl,
                     qrUrl,
+                    stickerUrl: stickerUrl || qrUrl, // Use stickerUrl if available, fallback to qrUrl
                 };
             };
 

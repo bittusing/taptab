@@ -37,6 +37,10 @@ const TapTagSchema = new Schema(
       type: String,
       required: true,
     },
+    stickerUrl: {
+      type: String,
+      default: null,
+    },
     shortUrl: {
       type: String,
       required: true,

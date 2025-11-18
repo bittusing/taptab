@@ -73,3 +73,8 @@ Existing tags created before this feature do not automatically have QR images. T
 Following these steps guarantees that every newly generated TapTag includes a downloadable QR code that routes visitors to the owner contact page. 
 
 
+Current Flow:
+generateQrImage() → QR Buffer → Save QR only
+
+New Flow:
+generateQrImage() → QR Buffer → Load Template → Composite QR on Template → Save Sticker

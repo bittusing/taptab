@@ -21,7 +21,8 @@ const allowedOrigins = (config.allowedOrigins && config.allowedOrigins.length > 
       'http://localhost:3000',
       'http://localhost:5173',
       'http://localhost:9000',
-      'https://taptag.in'
+      'https://taptag.in',
+      'https://taptagdashboard.vercel.app'
     ];
 
 module.exports = function (app) {
