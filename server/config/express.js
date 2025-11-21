@@ -18,13 +18,14 @@ const config = require('./environment');
 const allowedOrigins = (config.allowedOrigins && config.allowedOrigins.length > 0)
   ? config.allowedOrigins
   : [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://localhost:9000',
-      'https://taptag.in',
-      'http://13.204.228.115',
+      // 'http://localhost:3000',
+      // 'http://localhost:5173',
+      // 'http://localhost:9000',
+      // 'https://taptag.in',
+      // 'http://13.204.228.115',
       'https://app.vahantag.in',
-      'https://taptagdashboard.vercel.app'
+      'https://admin.vahantag.in',
+      // 'https://taptagdashboard.vercel.app'
     ];
 
 module.exports = function (app) {
