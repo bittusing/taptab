@@ -22,6 +22,8 @@ const allowedOrigins = (config.allowedOrigins && config.allowedOrigins.length > 
       'http://localhost:5173',
       'http://localhost:9000',
       'https://taptag.in',
+      'http://13.204.228.115',
+      'https://app.vahantag.in',
       'https://taptagdashboard.vercel.app'
     ];
 
